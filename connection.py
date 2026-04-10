@@ -24,7 +24,7 @@ ssl_context = ssl.create_default_context(cafile=certifi.where())
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-CHAT_ID = os.getenv("TOKEN")
+CHAT_ID = os.getenv("CHAT_ID")
 USERNAME = os.getenv("USERNAME")
 PASSWORD = os.getenv("PASSWORD")
 
