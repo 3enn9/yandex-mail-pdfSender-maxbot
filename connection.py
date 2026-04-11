@@ -4,14 +4,12 @@ import json
 import os
 import ssl
 import time
-
 import pdfplumber
 from io import BytesIO
 import re
 import fitz
 from telegram import Bot
 from dotenv import load_dotenv
-
 
 import certifi
 from imapclient import IMAPClient
@@ -58,7 +56,8 @@ def process_message(server, uid):
                 for page in pdf.pages:
                     text += page.extract_text() or ""
 
-            result = parse_invoice(text)
+            # result = parse_invoice(text)
+            result = os.path.splitext(part.filename)[0].strip('"')
 
             loop = asyncio.new_event_loop()
             loop.run_until_complete(send_pdf_as_images(pdf_bytes, result))
@@ -66,12 +65,12 @@ def process_message(server, uid):
             print("📄 PDF текст:")
             print(result)
 
-    print("📩 Новое письмо!")
-    print("UID: ", uid)
-    print("От:", from_)
-    print("Тема:", subject)
-    print("Текст:", body[:200])
-    print("-" * 40)
+    # print("📩 Новое письмо!")
+    # print("UID: ", uid)
+    # print("От:", from_)
+    # print("Тема:", subject)
+    # print("Текст:", body[:200])
+    # print("-" * 40)
 
 
 def idle_loop():
@@ -91,17 +90,15 @@ def idle_loop():
                 responses = server.idle_check(timeout=60)
                 server.idle_done()
 
-                print("responses:", responses)
-
                 messages = server.search([
                     'UID', f'{last_uid + 1}:*'
                 ])
 
                 if messages:
                     for uid in messages:
-                        process_message(server, uid)
+                        if uid > last_uid:
+                            process_message(server, uid)
 
-                    # ✔ безопасное обновление
                     last_uid = max(messages)
 
                     print("📌 last_uid:", last_uid)
@@ -115,23 +112,9 @@ def idle_loop():
 def parse_invoice(text: str):
     result = {}
 
-    supplier = re.search(r"Поставщик\s+(.*?)(?=Покупатель|$)", text, re.S)
-    if supplier:
-        result["supplier"] = extract_org_name(supplier.group(1))
-
     buyer = re.search(r"Покупатель\s+(.*?)(?=Основание|№|Товары|$)", text, re.S)
     if buyer:
         result["buyer"] = extract_org_name(buyer.group(1))
-
-    # Заголовок счета
-    title = re.search(
-        r"(с[сc]ч[еe]т(?:[-\s]?фактура)?(?:\s+на\s+оплату)?[^\\n]{0,50})",
-        text,
-        re.IGNORECASE
-    )
-
-    if title:
-        result["title"] = title.group(1).strip()
 
     return result
 
@@ -141,7 +124,7 @@ async def send_pdf_as_images(pdf_bytes, text):
 
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
 
-    text = json.dumps(text, ensure_ascii=False, indent=2)
+    # text = json.dumps(text, ensure_ascii=False, indent=2)
 
     for i, page in enumerate(doc):
         pix = page.get_pixmap()
