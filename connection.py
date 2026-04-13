@@ -74,7 +74,7 @@ def process_message(server, uid):
 
 
 def idle_loop():
-    last_uid = 56732
+    last_uid = 56747
 
     while True:
         try:
