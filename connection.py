@@ -62,8 +62,7 @@ def process_message(server, uid):
             loop = asyncio.new_event_loop()
             loop.run_until_complete(send_pdf_as_images(pdf_bytes, result))
 
-            print("📄 PDF текст:")
-            print(result)
+            print(uid, result)
 
     # print("📩 Новое письмо!")
     # print("UID: ", uid)
@@ -94,7 +93,8 @@ def idle_loop():
 
                     if messages:
                         for uid in messages:
-                            process_message(server, uid)
+                            if uid > last_uid:
+                                process_message(server, uid)
 
                         last_uid = max(messages)
 
