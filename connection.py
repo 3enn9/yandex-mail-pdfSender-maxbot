@@ -76,37 +76,32 @@ def process_message(server, uid):
 def idle_loop():
     last_uid = 56732
 
-    with IMAPClient(HOST, ssl=True) as server:
-        server.login(USERNAME, PASSWORD)
-        server.select_folder('INBOX')
+    while True:
+        try:
+            with IMAPClient(HOST, ssl=True) as server:
+                server.login(USERNAME, PASSWORD)
+                server.select_folder('INBOX')
 
-        print("✅ Подключено. Ждём письма...")
+                print("✅ подключено")
 
-        while True:
-            try:
-                server.idle()
-                print("⏳ ждём 60 сек")
+                while True:
+                    server.idle()
 
-                responses = server.idle_check(timeout=60)
-                server.idle_done()
+                    responses = server.idle_check(timeout=60)
+                    server.idle_done()
 
-                messages = server.search([
-                    'UID', f'{last_uid + 1}:*'
-                ])
+                    messages = server.search(['UID', f'{last_uid + 1}:*'])
 
-                if messages:
-                    for uid in messages:
-                        if uid > last_uid:
+                    if messages:
+                        for uid in messages:
                             process_message(server, uid)
 
-                    last_uid = max(messages)
+                        last_uid = max(messages)
 
-                    print("📌 last_uid:", last_uid)
-
-            except Exception as e:
-                print("⚠️ Ошибка:", e)
-                print("🔄 Переподключение через 5 секунд...")
-                time.sleep(5)
+        except Exception as e:
+            print("⚠️ ошибка:", e)
+            print("🔄 переподключение...")
+            time.sleep(5)
 
 
 def parse_invoice(text: str):
