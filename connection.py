@@ -57,7 +57,7 @@ def process_message(server, uid):
                     text += page.extract_text() or ""
 
             check = parse_invoice(text)
-            result = os.path.splitext(part.filename)[0].strip('"') + "\n" + check["buyer"]
+            result = os.path.splitext(part.filename)[0].strip('"') + "\n" + check
 
             loop = asyncio.new_event_loop()
             loop.run_until_complete(send_pdf_as_images(pdf_bytes, result))
@@ -107,11 +107,18 @@ def idle_loop():
 def parse_invoice(text: str):
     result = {}
 
-    buyer = re.search(r"Покупатель\s+(.*?)(?=Основание|№|Товары|$)", text, re.S)
-    if buyer:
-        result["buyer"] = extract_org_name(buyer.group(1))
+    buyer = re.search(
+        r"Покупатель\s+(.*?)(?=\s*,?\s*ИНН)",
+        text,
+        re.S
+    )
 
-    return result
+    if buyer:
+        buyer = re.sub(r'\s+', ' ', buyer.group(1)).strip()
+
+    if buyer is None:
+        return ""
+    return buyer
 
 
 async def send_pdf_as_images(pdf_bytes, text):
@@ -145,7 +152,7 @@ def extract_org_name(text):
     )
 
     if not match:
-        return None
+        return ""
 
     name = match.group(0)
 
