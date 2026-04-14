@@ -56,8 +56,8 @@ def process_message(server, uid):
                 for page in pdf.pages:
                     text += page.extract_text() or ""
 
-            # result = parse_invoice(text)
-            result = os.path.splitext(part.filename)[0].strip('"')
+            check = parse_invoice(text)
+            result = os.path.splitext(part.filename)[0].strip('"') + "\n" + check["buyer"]
 
             loop = asyncio.new_event_loop()
             loop.run_until_complete(send_pdf_as_images(pdf_bytes, result))
@@ -73,7 +73,7 @@ def process_message(server, uid):
 
 
 def idle_loop():
-    last_uid = 56747
+    last_uid = 56793
 
     while True:
         try:
