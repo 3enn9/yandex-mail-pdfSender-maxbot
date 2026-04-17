@@ -1,6 +1,5 @@
 import asyncio
 import io
-import json
 import os
 import ssl
 import time
@@ -28,21 +27,13 @@ PASSWORD = os.getenv("PASSWORD")
 
 
 def process_message(server, uid):
-    raw_message = server.fetch([uid], ['BODY[]', 'FLAGS'])
+    raw_message = server.fetch([uid], ['BODY.PEEK[]', 'FLAGS'])
     message = pyzmail.PyzMessage.factory(raw_message[uid][b'BODY[]'])
 
-    subject = message.get_subject()
     from_ = message.get_addresses('from')
 
     if from_[0][1] != "ratavina@mail.ru":
         return
-
-    if message.text_part:
-        body = message.text_part.get_payload().decode(message.text_part.charset)
-    elif message.html_part:
-        body = message.html_part.get_payload().decode(message.html_part.charset)
-    else:
-        body = ""
 
     for part in message.mailparts:
         if part.filename and part.filename.endswith(".pdf") and "сч " in part.filename:
@@ -63,13 +54,6 @@ def process_message(server, uid):
             loop.run_until_complete(send_pdf_as_images(pdf_bytes, result))
 
             print(uid, result)
-
-    # print("📩 Новое письмо!")
-    # print("UID: ", uid)
-    # print("От:", from_)
-    # print("Тема:", subject)
-    # print("Текст:", body[:200])
-    # print("-" * 40)
 
 
 def idle_loop():
@@ -105,8 +89,6 @@ def idle_loop():
 
 
 def parse_invoice(text: str):
-    result = {}
-
     buyer = re.search(
         r"Покупатель\s+(.*?)(?=\s*,?\s*ИНН)",
         text,
@@ -126,8 +108,6 @@ async def send_pdf_as_images(pdf_bytes, text):
 
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
 
-    # text = json.dumps(text, ensure_ascii=False, indent=2)
-
     for i, page in enumerate(doc):
         pix = page.get_pixmap()
         img_bytes = pix.tobytes("png")
@@ -141,27 +121,6 @@ async def send_pdf_as_images(pdf_bytes, text):
             photo=bio,
             caption=text
         )
-
-
-def extract_org_name(text):
-    # берём только ООО/ИП/АО и т.п.
-    match = re.search(
-        r'(ООО|ИП|АО|ЗАО|ПАО|Общество\s+с\s+ограниченной\s+ответственностью|Индивидуальный\s+предприниматель)\s*"?([^,\n]+)"?',
-        text,
-        re.IGNORECASE
-    )
-
-    if not match:
-        return ""
-
-    name = match.group(0)
-
-    # убираем хвосты (ИНН, КПП, адреса)
-    name = re.sub(r'ИНН.*', '', name)
-    name = re.sub(r'КПП.*', '', name)
-    name = re.sub(r',.*', '', name)
-
-    return name.strip()
 
 if __name__ == "__main__":
     idle_loop()
