@@ -3,6 +3,7 @@ version: "3.9"
 services:
   app:
     build: .
+    restart: unless-stopped
     volumes:
       - .:/app
     command: python connection.py
